@@ -101,7 +101,6 @@ def list_post():
     center.sort()
     print(center)
 
-    
     boxes_list = []
     for i in range(len(rows)):
         l=[]
