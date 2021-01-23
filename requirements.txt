@@ -1,0 +1,5 @@
+Flask==1.1.1
+numpy>=1.9.2
+pytesseract
+tesseract-ocr
+opencv-python
