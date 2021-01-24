@@ -4,3 +4,4 @@ pytesseract
 opencv-python
 Werkzeug
 Pillow
+gunicorn
