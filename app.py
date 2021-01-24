@@ -3,11 +3,13 @@ from werkzeug.utils import secure_filename
 import os
 import numpy as np
 app = Flask(__name__)
-app.config['imgdir'] = "imgdir"
+app.config['imgdir'] = "./imgdir"
 import numpy as np
 import cv2
 import pandas as pd
 import pytesseract
+import io
+from PIL import Image
 
 # Disable scientific notation for clarity
 # Load the model
@@ -20,13 +22,24 @@ def home():
 
 @app.route('/predict_api', methods=["GET","POST"])
 def list_post():    
-    #data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32) #number of images 1 (RGB image)
-    data = request.files['data']
+    # #data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32) #number of images 1 (RGB image)
+    # data = request.files['data']
+    # in_memory_file = io.BytesIO()
+    # filepath = os.path.join(app.config['imgdir'], "img")
+    # filepath.save(in_memory_file)
     
-    filename = secure_filename(data.filename) # save file 
-    filepath = os.path.join(app.config['imgdir'], filename);
-    data.save(filepath)
-    img = cv2.imread(filepath,0)
+    # # filename = secure_filename(data.filename) # save file 
+    
+    # # data.save(filepath)
+    # img = cv2.imread(filepath,0)
+
+    #npimg = np.fromfile(request.files['file'], numpy.uint8)
+    # convert numpy array to image
+    #img = cv2.imdecode(npimg, cv2.IMREAD_GRAYSCALE)
+
+    file = request.files['file']
+    npimg = np.fromfile(file, np.uint8)
+    img = cv2.imdecode(npimg, 0)
 
     thresh,img_bin = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
     img_bin = 255-img_bin
