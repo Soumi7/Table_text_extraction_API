@@ -3,5 +3,6 @@ libsm6
 libxrender1
 libfontconfig1
 libarchive-dev
+libarchive
 tesseract-ocr-eng
 tesseract-ocr
