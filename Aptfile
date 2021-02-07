@@ -1,7 +1,6 @@
 libgl1
 libsm6
 libxrender1
-libfontconfig1
-libarchive-dev
+libfontconfig1exit
 tesseract-ocr-eng
 tesseract-ocr
