@@ -5,7 +5,7 @@ import numpy as np
 app = Flask(__name__)
 app.config['imgdir'] = "./imgdir"
 import numpy as np
-import cv2
+#import cv2
 import pandas as pd
 import pytesseract
 import io
