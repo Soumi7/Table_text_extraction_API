@@ -1,3 +1,7 @@
 libgl1
 libsm6
 libxrender1
+libfontconfig1
+libarchive-dev
+tesseract-ocr-eng
+tesseract-ocr
