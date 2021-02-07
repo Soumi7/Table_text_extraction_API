@@ -6,3 +6,4 @@ Werkzeug
 Pillow
 pandas
 gunicorn
+tesseract-ocr
