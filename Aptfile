@@ -6,4 +6,3 @@ libarchive-dev
 libtesseract-dev
 tesseract-ocr
 tesseract-ocr-eng
-ldconfig
