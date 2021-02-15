@@ -2,7 +2,7 @@ import requests
 import json
 # api-endpoint 
 #API_ENDPOINT = "http://0.0.0.0:5000/predict_api"
-API_ENDPOINT =  "https://ey7777.azurewebsites.net/predict_api"
+API_ENDPOINT =  "https://tabledataextraction.herokuapp.com/predict_api"
   
 data=[[1,0]]
 # defining a params dict for the parameters to be sent to the API 
