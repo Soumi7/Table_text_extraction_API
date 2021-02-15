@@ -1,8 +1,8 @@
 Flask==1.1.1
 numpy>=1.9.2
+Pillow 
 pytesseract==0.3.6
 opencv-contrib-python
 Werkzeug
-Pillow
 pandas
 gunicorn
