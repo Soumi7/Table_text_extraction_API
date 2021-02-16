@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template, url_for
 from werkzeug.utils import secure_filename
 import os
+import json
 import numpy as np
 app = Flask(__name__)
 app.config['imgdir'] = "./imgdir"
@@ -97,7 +98,7 @@ def list_post():
             columns=[]
             previous = boxes[i]
             columns.append(boxes[i])
-    print("Rows")
+    # print("Rows")
     for row in rows:
         print(row)
 
@@ -105,14 +106,14 @@ def list_post():
     for i in range(len(row)):
         if len(row[i]) > total_cells:
             total_cells = len(row[i])
-    print(total_cells)
+    # print(total_cells)
 
     center = [int(rows[i][j][0]+rows[i][j][2]/2) for j in range(len(rows[i])) if rows[0]]
-    print(center)
+    # print(center)
 
     center=np.array(center)
     center.sort()
-    print(center)
+    # print(center)
 
     boxes_list = []
     for i in range(len(rows)):
@@ -125,8 +126,8 @@ def list_post():
             indexing = list(diff).index(minimum)
             l[indexing].append(rows[i][j])
         boxes_list.append(l)
-    for box in boxes_list:
-        print(box)
+    # for box in boxes_list:
+        # print(box)
 
     dataframe_final=[]
     for i in range(len(boxes_list)):
@@ -148,14 +149,28 @@ def list_post():
                         out = pytesseract.image_to_string(erosion)
                     s = s +" "+ out
                 dataframe_final.append(s)
-    print(dataframe_final)
+    # print(dataframe_final)
     arr = np.array(dataframe_final)
-    print(arr)    
+    # print(arr)    
     dataframe = pd.DataFrame(arr.reshape(len(rows), total_cells))
     data = dataframe.style.set_properties(align="left")
     dataframe.to_csv("output.csv")
     dataframe=pd.read_csv("output.csv")
-    return jsonify(result= dataframe.to_json())
+    res = {}
+    # print(dataframe)
+    # for i in dataframe:
+    #     for j in i:
+    #         l = []
+    #         st = j.replace("\n","")
+    #         st = st.replace("\f","")
+    #         l.append(st)
+    #     dataframe[i]=l
+    # print(res)
+    # dataframe = pd.DataFrame(res) 
+    parsed = json.loads(dataframe.to_json(orient="split"))
+    print(json.dumps(parsed, indent=4))
+
+    return jsonify(result= json.dumps(parsed, indent=4))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port=5000)
