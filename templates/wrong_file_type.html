@@ -1,0 +1,81 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Table Text Extraction</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script data-ad-client="ca-pub-8844979755354746" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+</head>
+<body>
+<nav>
+    <div class="container nav-wrapper">
+        <a href="/" class="brand-logo">Table Data Extraction</a>
+        <ul id="nav-mobile" class="right">
+            <li><a href="/">Home</a></li>
+            <li>
+                <a href="https://www.linkedin.com/in/soumi-bardhan-8539b3191/">
+                    <i class="large material-icons" style="color: white">person_add</i>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <h2 style="text-align: center">Want to extract a table from your image?</h2>
+    <h4 style="text-align: center">No worries!</h4>
+    <br>
+    <div class="row">
+        <div class="col s4">
+            <!-- Promo Content 1 goes here -->
+            <div class="center">
+                <i class="large material-icons" style="color: #EE6E73">image</i>
+                <p>Table Data Extraction</p>
+                <p class="light center">Convert your image to a table.</p>
+            </div>
+        </div>
+
+        <div class="col s4">
+            <!-- Promo Content 2 goes here -->
+            <div class="center">
+                <i class="large material-icons" style="color: orange">cloud_download</i>
+                <p>Download!</p>
+                <p class="light center">Download the table as a csv!</p>
+            </div>
+        </div>
+
+        <div class="col s4">
+            <!-- Promo Content 3 goes here -->
+            <div class="center">
+                <i class="large material-icons" style="color: blue">code</i>
+                <p>Try it out!</p>
+                <p class="light center">I built this with ❤️!</p>
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <h4 style="text-align: center">Wrong file type! Please select a PNG file only.</h4>
+    <br>
+    <br>
+
+    
+        <form  id="form" action="{{ url_for('predict')}}" method="post" enctype = "multipart/form-data">
+            <div class="center">
+                <input type="file" name="file" />  
+                <input type = "submit" name="action" value="Upload"> 
+            </div>
+        </form>
+    
+
+    
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</body>
+</html>
