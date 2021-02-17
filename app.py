@@ -176,13 +176,12 @@ def list_post():
 def predict():
     #for HTML GUI rendering
     file = request.files['file']
-    print(file)
-    if file.split(".")[-1]!="png":
+    print(file.filename)
+    if file.filename.split(".")[-1]!="png":
         return render_template('Wrong_file_type.html')
 
     npimg = np.fromfile(file, np.uint8)
-    img = cv2.imdecode(npimg, 0)
-    f = request.files['file']  
+    img = cv2.imdecode(npimg, 0) 
     # f.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename)))
     # img = cv2.imread(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename)))
     # img = cv2.imdecode(img, 0)
