@@ -6,6 +6,3 @@ opencv-contrib-python
 Werkzeug
 pandas
 gunicorn
-flask_csv
-StringIO
-csv
