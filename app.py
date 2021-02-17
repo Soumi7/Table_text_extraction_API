@@ -11,7 +11,6 @@ import pandas as pd
 import pytesseract
 import io
 from PIL import Image
-from flask_csv import send_csv
 #import StringIO
 #import csv
 
