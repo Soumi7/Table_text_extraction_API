@@ -52,7 +52,7 @@ def list_post():
     
     hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len, 1)) #cv2 making rectangle
     
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2)) #
 
     
     image_1 = cv2.erode(img_bin, ver_kernel, iterations=3) 
