@@ -42,261 +42,164 @@ def list_post():
     npimg = np.fromfile(file, np.uint8)
     img = cv2.imdecode(npimg, 0)
 
-    thresh,img_bin = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
+    thresh,img_bin = cv2.threshold(img,128,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     img_bin = 255-img_bin
-
-    img_bin1 = 255-img
-    thresh1,img_bin1_otsu = cv2.threshold(img_bin1,128,255,cv2.THRESH_OTSU)
-
-    img_bin2 = 255-img
-    thresh1,img_bin_otsu = cv2.threshold(img_bin2,128,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
+    #####################3
+    
+    kernel_len = np.array(img).shape[1]//100
+    
+    ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_len))
+    
+    hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len, 1)) #cv2 making rectangle
+    
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
 
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, np.array(img).shape[1]//100))
-    eroded_image = cv2.erode(img_bin_otsu, vertical_kernel, iterations=3)
-    vertical_lines = cv2.dilate(eroded_image, vertical_kernel, iterations=3)
+    
+    image_1 = cv2.erode(img_bin, ver_kernel, iterations=3) 
+    vertical_lines = cv2.dilate(image_1, ver_kernel, iterations=3) 
+    #cv2.imwrite("/content/drive/MyDrive/Colab Notebooks/vertical.jpg",vertical_lines)
+    
+    #Use horizontal kernel to detect and save the horizontal lines in a jpg
+    image_2 = cv2.erode(img_bin, hor_kernel, iterations=3) #erosion 
+    horizontal_lines = cv2.dilate(image_2, hor_kernel, iterations=3)  #dilation
+    #cv2.imwrite("/content/drive/MyDrive/Colab Notebooks/horizontal.jpg",horizontal_lines)
+    
 
-    hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (np.array(img).shape[1]//100, 1))
-    horizontal_lines = cv2.erode(img_bin, hor_kernel, iterations=5)
-    horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=5)
-
-    vertical_horizontal_lines = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
-    vertical_horizontal_lines = cv2.erode(~vertical_horizontal_lines, kernel, iterations=3)
-    thresh, vertical_horizontal_lines = cv2.threshold(vertical_horizontal_lines,128,255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    bitxor = cv2.bitwise_xor(img,vertical_horizontal_lines)
+    # Combine horizontal and vertical lines in a new third image, with both having same weight.
+    img_vh = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0) #image : vertical + horizontal : equally add
+    #Eroding and thesholding the image
+    img_vh = cv2.erode(~img_vh, kernel, iterations=2)
+    thresh, img_vh = cv2.threshold(img_vh,128,255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    #cv2.imwrite("/content/drive/MyDrive/Colab Notebooks/img_vh.jpg", img_vh)
+    bitxor = cv2.bitwise_xor(img,img_vh)
     bitnot = cv2.bitwise_not(bitxor)
+    
+    # Detect contours for following box detection
+    contours, hierarchy = cv2.findContours(img_vh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+    def sort_contours(cnts, method="left-to-right"):
+        # initialize the reverse flag and sort index
+        reverse = False
+        i = 0
+        # handle if we need to sort in reverse
+        if method == "right-to-left" or method == "bottom-to-top":
+            reverse = True
+        # handle if we are sorting against the y-coordinate rather than
+        # the x-coordinate of the bounding box
+        if method == "top-to-bottom" or method == "bottom-to-top":
+            i = 1
+        # construct the list of bounding boxes and sort them from top to
+        # bottom
+        boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+        (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
+        key=lambda b:b[1][i], reverse=reverse))
+        # return the list of sorted contours and bounding boxes
+        return (cnts, boundingBoxes)
 
-    contours, hierarchy = cv2.findContours(vertical_horizontal_lines, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # Sort all the contours by top to bottom.
+    contours, boundingBoxes = sort_contours(contours, method="top-to-bottom")
 
-    boundingBoxes = [cv2.boundingRect(contour) for contour in contours]
-    (contours, boundingBoxes) = zip(*sorted(zip(contours, boundingBoxes),key=lambda x:x[1][1]))
+    #Creating a list of heights for all detected boxes
+    heights = [boundingBoxes[i][3] for i in range(len(boundingBoxes))] 
 
-    boxes = []
-    for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
-        if (w<1000 and h<500):
-            image = cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-            boxes.append([x,y,w,h])
-
-    rows=[]
-    columns=[]
-    heights = [boundingBoxes[i][3] for i in range(len(boundingBoxes))]
+    #Get mean of heights
     mean = np.mean(heights)
-    print(mean)
-    columns.append(boxes[0])
-    previous=boxes[0]
-    for i in range(1,len(boxes)):
-        if(boxes[i][1]<=previous[1]+mean/2):
-            columns.append(boxes[i])
-            previous=boxes[i]
-            if(i==len(boxes)-1):
-                rows.append(columns)
+
+    #Create list box to store all boxes in  
+    box = []
+    # Get position (x,y), width and height for every contour and show the contour on image
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        if (w<2000 and h<2500):
+            image = cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
+            box.append([x,y,w,h])
+            
+    #Creating two lists to define row and column in which cell is located
+    row=[]
+    column=[]
+    j=0
+    print(box)
+    #Sorting the boxes to their respective row and column
+    for i in range(len(box)):    
+            
+        if i==0:
+            column.append(box[i])
+            previous=box[i]    
+        
         else:
-            rows.append(columns)
-            columns=[]
-            previous = boxes[i]
-            columns.append(boxes[i])
-    # print("Rows")
-    for row in rows:
-        print(row)
+            if(box[i][1]<=previous[1]+mean/2):
+                column.append(box[i])
+                previous=box[i]            
+                
+                if(i==len(box)-1):
+                    row.append(column)        
+                
+            else:
+                row.append(column)
+                column=[]
+                previous = box[i]
+                column.append(box[i])
+                
+    print(column)
+    print(row)
 
-    total_cells=0
+    #calculating maximum number of cells
+    countcol = 0
     for i in range(len(row)):
-        if len(row[i]) > total_cells:
-            total_cells = len(row[i])
-    # print(total_cells)
+        countcol = len(row[i])
+        if countcol > countcol:
+            countcol = countcol
 
-    center = [int(rows[i][j][0]+rows[i][j][2]/2) for j in range(len(rows[i])) if rows[0]]
-    # print(center)
+    #Retrieving the center of each column
+    center=[int(row[i][j][0]+row[i][j][2]/2) for j in range(len(row[i])) if row[0]]
 
     center=np.array(center)
     center.sort()
-    # print(center)
+    print(center)
+    #Regarding the distance to the columns center, the boxes are arranged in respective order
 
-    boxes_list = []
-    for i in range(len(rows)):
-        l=[]
-        for k in range(total_cells):
-            l.append([])
-        for j in range(len(rows[i])):
-            diff = abs(center-(rows[i][j][0]+rows[i][j][2]/4))
+    finalboxes = []
+    for i in range(len(row)):
+        lis=[]
+        for k in range(countcol):
+            lis.append([])
+        for j in range(len(row[i])):
+            diff = abs(center-(row[i][j][0]+row[i][j][2]/4))
             minimum = min(diff)
             indexing = list(diff).index(minimum)
-            l[indexing].append(rows[i][j])
-        boxes_list.append(l)
-    # for box in boxes_list:
-        # print(box)
+            lis[indexing].append(row[i][j])
+        finalboxes.append(lis)
 
-    dataframe_final=[]
-    for i in range(len(boxes_list)):
-        for j in range(len(boxes_list[i])):
-            s=''
-            if(len(boxes_list[i][j])==0):
-                dataframe_final.append(' ')
+
+    #from every single image-based cell/box the strings are extracted via pytesseract and stored in a list
+    outer=[]
+    for i in range(len(finalboxes)):
+        for j in range(len(finalboxes[i])):
+            inner=''
+            if(len(finalboxes[i][j])==0):
+                outer.append(' ')
             else:
-                for k in range(len(boxes_list[i][j])):
-                    y,x,w,h = boxes_list[i][j][k][0],boxes_list[i][j][k][1], boxes_list[i][j][k][2],boxes_list[i][j][k][3]
-                    roi = bitnot[x:x+h, y:y+w]
+                for k in range(len(finalboxes[i][j])):
+                    y,x,w,h = finalboxes[i][j][k][0],finalboxes[i][j][k][1], finalboxes[i][j][k][2],finalboxes[i][j][k][3]
+                    finalimg = bitnot[x:x+h, y:y+w]
                     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))
-                    border = cv2.copyMakeBorder(roi,2,2,2,2, cv2.BORDER_CONSTANT,value=[255,255])
+                    border = cv2.copyMakeBorder(finalimg,2,2,2,2, cv2.BORDER_CONSTANT,value=[255,255])
                     resizing = cv2.resize(border, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
                     dilation = cv2.dilate(resizing, kernel,iterations=1)
                     erosion = cv2.erode(dilation, kernel,iterations=2)                
                     out = pytesseract.image_to_string(erosion)
                     if(len(out)==0):
-                        out = pytesseract.image_to_string(erosion)
-                    s = s +" "+ out
-                dataframe_final.append(s)
-    # print(dataframe_final)
-    arr = np.array(dataframe_final)
+                        out = pytesseract.image_to_string(erosion, config='--psm 3')
+                    inner = inner +" "+ out
+                outer.append(inner)
+
+        
+
+
+    ##############################3
+    arr = np.array(outer)
     # print(arr)    
-    dataframe = pd.DataFrame(arr.reshape(len(rows), total_cells))
-    data = dataframe.style.set_properties(align="left")
-    dataframe.to_csv("output.csv")
-    dataframe=pd.read_csv("output.csv")
-    res = {}
-    # print(dataframe)
-    # for i in dataframe:
-    #     for j in i:
-    #         l = []
-    #         st = j.replace("\n","")
-    #         st = st.replace("\f","")
-    #         l.append(st)
-    #     dataframe[i]=l
-    # print(res)
-    # dataframe = pd.DataFrame(res) 
-    parsed = json.loads(dataframe.to_json(orient="split"))
-    s = json.dumps(parsed, indent=4)
-    print(s)
-    return jsonify(result= json.dumps(parsed, indent=4))
-
-@app.route('/',methods=['POST','GET'])
-def predict():
-    #for HTML GUI rendering
-    file = request.files['file']
-    print(file.filename)
-    if file.filename.split(".")[-1]!="png":
-        return render_template('Wrong_file_type.html')
-
-    npimg = np.fromfile(file, np.uint8)
-    img = cv2.imdecode(npimg, 0) 
-    # f.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename)))
-    # img = cv2.imread(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename)))
-    # img = cv2.imdecode(img, 0)
-
-    thresh,img_bin = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
-    img_bin = 255-img_bin
-
-    img_bin1 = 255-img
-    thresh1,img_bin1_otsu = cv2.threshold(img_bin1,128,255,cv2.THRESH_OTSU)
-
-    img_bin2 = 255-img
-    thresh1,img_bin_otsu = cv2.threshold(img_bin2,128,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, np.array(img).shape[1]//100))
-    eroded_image = cv2.erode(img_bin_otsu, vertical_kernel, iterations=3)
-    vertical_lines = cv2.dilate(eroded_image, vertical_kernel, iterations=3)
-
-    hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (np.array(img).shape[1]//100, 1))
-    horizontal_lines = cv2.erode(img_bin, hor_kernel, iterations=5)
-    horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=5)
-
-    vertical_horizontal_lines = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
-    vertical_horizontal_lines = cv2.erode(~vertical_horizontal_lines, kernel, iterations=3)
-    thresh, vertical_horizontal_lines = cv2.threshold(vertical_horizontal_lines,128,255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    bitxor = cv2.bitwise_xor(img,vertical_horizontal_lines)
-    bitnot = cv2.bitwise_not(bitxor)
-
-
-    contours, hierarchy = cv2.findContours(vertical_horizontal_lines, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    boundingBoxes = [cv2.boundingRect(contour) for contour in contours]
-    (contours, boundingBoxes) = zip(*sorted(zip(contours, boundingBoxes),key=lambda x:x[1][1]))
-
-    boxes = []
-    for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
-        if (w<1000 and h<500):
-            image = cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-            boxes.append([x,y,w,h])
-
-    rows=[]
-    columns=[]
-    heights = [boundingBoxes[i][3] for i in range(len(boundingBoxes))]
-    mean = np.mean(heights)
-    print(mean)
-    columns.append(boxes[0])
-    previous=boxes[0]
-    for i in range(1,len(boxes)):
-        if(boxes[i][1]<=previous[1]+mean/2):
-            columns.append(boxes[i])
-            previous=boxes[i]
-            if(i==len(boxes)-1):
-                rows.append(columns)
-        else:
-            rows.append(columns)
-            columns=[]
-            previous = boxes[i]
-            columns.append(boxes[i])
-    # print("Rows")
-    for row in rows:
-        print(row)
-
-    total_cells=0
-    for i in range(len(row)):
-        if len(row[i]) > total_cells:
-            total_cells = len(row[i])
-    # print(total_cells)
-
-    center = [int(rows[i][j][0]+rows[i][j][2]/2) for j in range(len(rows[i])) if rows[0]]
-    # print(center)
-
-    center=np.array(center)
-    center.sort()
-    # print(center)
-
-    boxes_list = []
-    for i in range(len(rows)):
-        l=[]
-        for k in range(total_cells):
-            l.append([])
-        for j in range(len(rows[i])):
-            diff = abs(center-(rows[i][j][0]+rows[i][j][2]/4))
-            minimum = min(diff)
-            indexing = list(diff).index(minimum)
-            l[indexing].append(rows[i][j])
-        boxes_list.append(l)
-    # for box in boxes_list:
-        # print(box)
-
-    dataframe_final=[]
-    for i in range(len(boxes_list)):
-        for j in range(len(boxes_list[i])):
-            s=''
-            if(len(boxes_list[i][j])==0):
-                dataframe_final.append(' ')
-            else:
-                for k in range(len(boxes_list[i][j])):
-                    y,x,w,h = boxes_list[i][j][k][0],boxes_list[i][j][k][1], boxes_list[i][j][k][2],boxes_list[i][j][k][3]
-                    roi = bitnot[x:x+h, y:y+w]
-                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))
-                    border = cv2.copyMakeBorder(roi,2,2,2,2, cv2.BORDER_CONSTANT,value=[255,255])
-                    resizing = cv2.resize(border, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-                    dilation = cv2.dilate(resizing, kernel,iterations=1)
-                    erosion = cv2.erode(dilation, kernel,iterations=2)                
-                    out = pytesseract.image_to_string(erosion)
-                    if(len(out)==0):
-                        out = pytesseract.image_to_string(erosion)
-                    s = s +" "+ out
-                dataframe_final.append(s)
-    # print(dataframe_final)
-    arr = np.array(dataframe_final)
-    # print(arr)    
-    dataframe = pd.DataFrame(arr.reshape(len(rows), total_cells))
+    dataframe = pd.DataFrame(arr.reshape(len(row), countcol))
     data = dataframe.style.set_properties(align="left")
     # dataframe.to_csv("output.csv")
     # dataframe=pd.read_csv("output.csv")
